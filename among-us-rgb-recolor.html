@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recolor RGB · Tripulantes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070a16; --bg2:#0d1328; --panel:#111a33; --panel2:#17213f;
+    --line:#2a3a66; --line2:#3d5290; --txt:#e8eeff; --muted:#8a9bc9;
+    --red:#e2263b; --red2:#9e0f22; --cyan:#38fedb; --visor:#95CADC; --yellow:#f5f557;
+    --ok:#50ef39; --radius:16px;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:'Rubik', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color:var(--txt); background:var(--bg); min-height:100vh; overflow-x:hidden;
+  }
+  /* Fondo espacial */
+  .space{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #1a2a5c55, transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #4a0d2a44, transparent 60%),
+      linear-gradient(180deg,#060815,#0a0f22 60%,#070a16);
+  }
+  .space::before,.space::after{content:"";position:absolute;inset:-50%;
+    background-image:
+      radial-gradient(1px 1px at 20px 30px,#fff,transparent),
+      radial-gradient(1px 1px at 140px 80px,#cfe,transparent),
+      radial-gradient(1.5px 1.5px at 260px 160px,#fff,transparent),
+      radial-gradient(1px 1px at 330px 40px,#aef,transparent),
+      radial-gradient(1px 1px at 90px 210px,#fff,transparent),
+      radial-gradient(1.5px 1.5px at 400px 260px,#ffd,transparent);
+    background-size:420px 300px; opacity:.55; animation:drift 140s linear infinite;
+  }
+  .space::after{background-size:620px 420px;opacity:.3;animation-duration:220s}
+  @keyframes drift{to{transform:translate3d(-420px,-150px,0)}}
+
+  header{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:2px solid var(--line);
+    background:linear-gradient(180deg,#0e1530ee,#0a0f22cc);backdrop-filter:blur(6px);position:sticky;top:0;z-index:5}
+  .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+    background:conic-gradient(from 200deg,#ff3355,#3355ff,#33ff77,#ff3355);box-shadow:0 0 0 3px #000,0 0 18px #ff335566}
+  .logo span{width:26px;height:26px;border-radius:8px;background:#0a0f22;display:grid;place-items:center;font-weight:800;font-size:13px;letter-spacing:.5px}
+  header h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.5px}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:999px;border:2px solid var(--line);background:#0b1124;color:var(--muted);white-space:nowrap}
+  .chip.on{color:#001; background:var(--cyan); border-color:#000}
+  .chip.gl{color:var(--ok)}
+
+  .layout{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:18px;padding:18px 24px 30px;max-width:1700px;margin:0 auto}
+  @media (max-width:1180px){.layout{grid-template-columns:1fr}.stage{order:-1}}
+
+  .panel{background:linear-gradient(180deg,var(--panel),#0e1630);border:2px solid var(--line);border-radius:var(--radius);
+    box-shadow:inset 0 0 0 2px #00000055,0 10px 30px #0006;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+  .panel h2{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:2px;color:var(--visor);display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--red);box-shadow:0 0 8px var(--red)}
+  .sect{display:flex;flex-direction:column;gap:10px}
+  .sep{height:2px;background:repeating-linear-gradient(90deg,var(--line) 0 8px,transparent 8px 14px);opacity:.7}
+
+  /* Drop zone */
+  .drop{border:3px dashed var(--line2);border-radius:14px;padding:20px 14px;text-align:center;cursor:pointer;
+    background:repeating-linear-gradient(45deg,#0c1430,#0c1430 12px,#0e1736 12px,#0e1736 24px);transition:.15s}
+  .drop:hover,.drop.over{border-color:var(--cyan);box-shadow:0 0 0 4px #38fedb22,inset 0 0 30px #38fedb22}
+  .drop strong{display:block;font-size:15px;margin-bottom:4px}
+  .drop small{color:var(--muted);font-size:12px;line-height:1.5;display:block}
+  .drop .ico{font-size:30px;line-height:1;margin-bottom:6px}
+  .fileinfo{font-family:var(--mono);font-size:12px;color:var(--muted);background:#0a1024;border:2px solid var(--line);border-radius:10px;padding:10px;display:none;line-height:1.7;word-break:break-all}
+  .fileinfo b{color:var(--txt)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;color:#000;margin-right:6px}
+  .b-image{background:var(--cyan)} .b-gif{background:var(--yellow)} .b-video{background:#ff7aa8}
+
+  /* Paleta */
+  .palette{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .col{appearance:none;border:2px solid #000;border-radius:12px;background:#0b1226;color:var(--txt);cursor:pointer;
+    padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;font:inherit;font-size:11.5px;font-weight:600;
+    box-shadow:0 0 0 2px var(--line);transition:transform .08s, box-shadow .12s}
+  .col:hover{transform:translateY(-2px);box-shadow:0 0 0 2px var(--line2)}
+  .col.active{box-shadow:0 0 0 3px var(--cyan),0 0 16px #38fedb66}
+  .sw{width:38px;height:38px;border-radius:50%;border:3px solid #000;position:relative;overflow:hidden}
+  .sw i{position:absolute;right:3px;top:8px;width:16px;height:10px;border-radius:6px;border:2px solid #000;background:var(--visor)}
+  .col span{text-align:center;line-height:1.15}
+
+  .pickers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .pick{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .pick input[type=color]{width:100%;height:36px;border:2px solid #000;border-radius:10px;background:#0b1226;padding:2px;cursor:pointer;box-shadow:0 0 0 2px var(--line)}
+  .pick code{font-family:var(--mono);color:var(--txt);font-size:11px;text-transform:none;letter-spacing:0}
+
+  label.row{display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;user-select:none}
+  .row input[type=checkbox]{appearance:none;width:40px;height:22px;border-radius:999px;background:#1a2346;border:2px solid #000;position:relative;cursor:pointer;flex:none;transition:.15s;box-shadow:0 0 0 2px var(--line)}
+  .row input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:.15s}
+  .row input[type=checkbox]:checked{background:#0b4f45}
+  .row input[type=checkbox]:checked::after{left:20px;background:var(--cyan)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.45;margin:0}
+
+  .slider{display:flex;flex-direction:column;gap:6px}
+  .slider .top{display:flex;justify-content:space-between;font-size:13px}
+  .slider .top output{font-family:var(--mono);color:var(--cyan)}
+  input[type=range]{appearance:none;width:100%;height:10px;border-radius:999px;background:#0a1024;border:2px solid #000;box-shadow:0 0 0 2px var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:var(--red);border:3px solid #000;cursor:pointer;box-shadow:0 0 10px #e2263b88}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--red);border:3px solid #000;cursor:pointer}
+
+  .btn{appearance:none;font:inherit;font-weight:700;font-size:14px;border:3px solid #000;border-radius:12px;padding:10px 14px;cursor:pointer;
+    color:var(--txt);background:linear-gradient(180deg,#24335f,#1a2548);box-shadow:0 0 0 2px var(--line2),0 4px 0 #000;transition:transform .06s, filter .15s;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+  .btn:hover{filter:brightness(1.15)}
+  .btn:active{transform:translateY(3px);box-shadow:0 0 0 2px var(--line2),0 1px 0 #000}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:none;transform:none}
+  .btn.primary{background:linear-gradient(180deg,#ff3a50,#b0132a);box-shadow:0 0 0 2px #ff6b7c,0 4px 0 #000;font-size:16px;padding:14px}
+  .btn.small{font-size:12px;padding:7px 10px;border-width:2px;box-shadow:0 0 0 2px var(--line),0 3px 0 #000}
+  .btn.toggle.on{background:linear-gradient(180deg,#38fedb,#1ba98f);color:#001;box-shadow:0 0 0 2px #9fffee,0 3px 0 #000}
+
+  /* Escenario */
+  .stage{background:linear-gradient(180deg,#0d1430,#0a0f24);border:2px solid var(--line);border-radius:var(--radius);
+    display:flex;flex-direction:column;min-height:560px;overflow:hidden;box-shadow:inset 0 0 0 2px #00000055,0 10px 30px #0006}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border-bottom:2px solid var(--line);background:#0b1126}
+  .toolbar .grow{flex:1}
+  .tinfo{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .view{flex:1;position:relative;display:grid;place-items:center;padding:18px;min-height:420px;
+    background-color:#141c38;
+    background-image:linear-gradient(45deg,#19224a 25%,transparent 25%),linear-gradient(-45deg,#19224a 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#19224a 75%),linear-gradient(-45deg,transparent 75%,#19224a 75%);
+    background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+  .view canvas{image-rendering:auto;border-radius:6px;box-shadow:0 0 0 2px #000,0 12px 40px #000a}
+  .view.pixel canvas{image-rendering:pixelated}
+  .empty{text-align:center;color:var(--muted);max-width:420px;line-height:1.6}
+  .empty .big{font-size:56px;margin-bottom:6px;filter:drop-shadow(0 0 12px #e2263b88)}
+  .empty b{color:var(--txt)}
+  .modetag{position:absolute;top:14px;left:14px;font-family:var(--mono);font-size:12px;font-weight:700;padding:5px 10px;border-radius:8px;border:2px solid #000;background:var(--red);display:none}
+  .modetag.orig{background:var(--yellow);color:#000}
+  .modetag.mask{background:var(--cyan);color:#000}
+  .timeline{display:none;align-items:center;gap:10px;padding:10px 14px;border-top:2px solid var(--line);background:#0b1126}
+  .timeline input{flex:1}
+
+  /* Overlay de progreso */
+  .overlay{position:fixed;inset:0;background:#02040cdd;backdrop-filter:blur(4px);display:none;place-items:center;z-index:50}
+  .overlay.show{display:grid}
+  .modal{width:min(480px,92vw);background:linear-gradient(180deg,var(--panel2),var(--panel));border:3px solid #000;box-shadow:0 0 0 2px var(--line2),0 20px 60px #000;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px}
+  .modal h3{margin:0;font-size:18px}
+  .modal p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+  .bar{height:22px;border-radius:999px;border:3px solid #000;background:#0a1024;overflow:hidden;box-shadow:0 0 0 2px var(--line)}
+  .bar > div{height:100%;width:0;background:repeating-linear-gradient(45deg,#50ef39 0 14px,#3ccf28 14px 28px);transition:width .15s;animation:bars 1s linear infinite;background-size:40px 40px}
+  @keyframes bars{to{background-position:40px 0}}
+  .pct{font-family:var(--mono);font-size:13px;display:flex;justify-content:space-between;color:var(--muted)}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+    background:#1a0b12;border:3px solid #000;box-shadow:0 0 0 2px var(--red);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;max-width:min(560px,92vw);transition:.25s;z-index:60}
+  .toast.ok{background:#0b1a12;box-shadow:0 0 0 2px var(--ok)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hidden-render{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden;z-index:-5}
+  .kbd{font-family:var(--mono);font-size:11px;border:2px solid var(--line);border-radius:5px;padding:0 5px;color:var(--muted)}
+  footer{text-align:center;color:#5b6a95;font-size:12px;padding:0 0 24px}
+</style>
+</head>
+<body>
+<div class="space"></div>
+
+<header>
+  <div class="logo"><span>RGB</span></div>
+  <div>
+    <h1>Recolor RGB de tripulantes</h1>
+    <p>Plantilla R = cuerpo · B = sombra · G = visor — imágenes, GIFs y vídeos, 100% en tu navegador</p>
+  </div>
+  <div class="hdr-right">
+    <span class="chip" id="engineChip">motor: —</span>
+    <span class="chip" id="formatChip">sin archivo</span>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- Panel izquierdo -->
+  <aside class="panel">
+    <div class="sect">
+      <h2>Archivo</h2>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Subir archivo">
+        <div class="ico">🛰️</div>
+        <strong>Arrastra aquí o haz clic</strong>
+        <small>PNG · JPG · JPEG · WEBP · GIF animado · MP4 · WEBM</small>
+      </div>
+      <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden>
+      <div class="fileinfo" id="fileInfo"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="sect">
+      <h2>Colores oficiales</h2>
+      <div class="palette" id="palette"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="sect">
+      <h2>Ajuste manual</h2>
+      <div class="pickers">
+        <label class="pick">Cuerpo<input type="color" id="cBody"><code id="cBodyHex"></code></label>
+        <label class="pick">Sombra<input type="color" id="cShadow"><code id="cShadowHex"></code></label>
+        <label class="pick">Visor<input type="color" id="cVisor"><code id="cVisorHex"></code></label>
+      </div>
+      <label class="row"><input type="checkbox" id="recolorVisor" checked> Recolorear visor (canal G)</label>
+      <button class="btn small" id="resetVisor">Visor clásico #95CADC</button>
+    </div>
+  </aside>
+
+  <!-- Escenario central -->
+  <section class="stage">
+    <div class="toolbar">
+      <button class="btn small toggle" id="btnCompare" disabled title="Tecla C (mantén pulsada para comparar)">👁️ Original</button>
+      <button class="btn small toggle" id="btnMask" disabled title="Tecla M">🎯 Ver máscara</button>
+      <button class="btn small" id="btnPlay" disabled>⏸ Pausa</button>
+      <button class="btn small" id="btnMute" disabled style="display:none">🔇 Silencio</button>
+      <span class="grow"></span>
+      <span class="tinfo" id="tinfo"></span>
+    </div>
+    <div class="view" id="view">
+      <span class="modetag" id="modeTag"></span>
+      <div class="empty" id="empty">
+        <div class="big">🚀</div>
+        <p>Sube un archivo con la <b>plantilla RGB pura</b> (cuerpo rojo, sombra azul, visor verde).<br>
+        Los fondos, sombreros, mascotas y armas se respetan gracias al filtro por <b>dominancia de canal</b>.</p>
+        <p class="hint">Atajos: <span class="kbd">C</span> comparar · <span class="kbd">M</span> máscara · <span class="kbd">Espacio</span> reproducir/pausar</p>
+      </div>
+    </div>
+    <div class="timeline" id="timeline">
+      <span class="tinfo" id="tCur">0:00</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1">
+      <span class="tinfo" id="tDur">0:00</span>
+    </div>
+  </section>
+
+  <!-- Panel derecho -->
+  <aside class="panel">
+    <div class="sect">
+      <h2>Filtro de aislamiento</h2>
+      <div class="slider">
+        <div class="top"><span>Tolerancia de dominancia</span><output id="oTol"></output></div>
+        <input type="range" id="tol" min="0" max="90" value="35">
+        <p class="hint">Cuánto puede contaminar un segundo canal al dominante. Bájala si se tiñen cosméticos naranjas/amarillos; súbela si quedan bordes sin pintar.</p>
+      </div>
+      <div class="slider">
+        <div class="top"><span>Tolerancia de blancos/grises</span><output id="oWtol"></output></div>
+        <input type="range" id="wtol" min="0" max="90" value="22">
+        <p class="hint">Permite pixeles mezclados con blanco (brillos del visor). Bájala si se tiñen colores pastel o rosas del escenario.</p>
+      </div>
+      <div class="slider">
+        <div class="top"><span>Suavizado del borde de la máscara</span><output id="oSoft"></output></div>
+        <input type="range" id="soft" min="1" max="100" value="45">
+      </div>
+      <div class="slider">
+        <div class="top"><span>Intensidad mínima de canal</span><output id="oMinc"></output></div>
+        <input type="range" id="minc" min="0" max="40" value="4">
+        <p class="hint">Ignora pixeles casi negros/grises con ruido (útil en JPG y vídeo comprimido).</p>
+      </div>
+      <label class="row"><input type="checkbox" id="mixRB" checked> Fundir transición cuerpo ↔ sombra (mezclas R+B)</label>
+      <p class="hint">Desactívalo si hay cosméticos morados/magenta que se tiñen. Usa «Ver máscara» para comprobar qué se pinta.</p>
+      <button class="btn small" id="resetFilter">Restablecer filtro</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="sect">
+      <h2>Exportar</h2>
+      <div class="fileinfo" id="exportInfo" style="display:block">Sube un archivo para exportar.</div>
+      <div class="slider" id="gifOpts" style="display:none">
+        <div class="top"><span>Calidad de paleta GIF</span><output id="oGifQ"></output></div>
+        <input type="range" id="gifQ" min="1" max="20" value="5">
+        <p class="hint">1 = mejor calidad (más lento) · 20 = más rápido.</p>
+      </div>
+      <div id="vidOpts" style="display:none" class="sect">
+        <label class="row"><input type="checkbox" id="withAudio" checked> Incluir audio original</label>
+        <p class="hint">El vídeo se renderiza en tiempo real (tarda lo que dura). Mantén esta pestaña visible mientras se exporta.</p>
+      </div>
+      <button class="btn primary" id="btnExport" disabled>⬇ Exportar / Descargar</button>
+    </div>
+  </aside>
+</main>
+<footer>Todo el procesamiento ocurre en tu dispositivo: ningún archivo se sube a ningún servidor.</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="pTitle">Procesando…</h3>
+    <p id="pMsg">Preparando…</p>
+    <div class="bar"><div id="pBar"></div></div>
+    <div class="pct"><span id="pPhase"></span><span id="pPct">0%</span></div>
+    <button class="btn small" id="pCancel">Cancelar</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="hidden-render" id="hiddenRender"></div>
+
+<script type="module">
+/* =========================================================================
+   CONFIGURACIÓN
+   ========================================================================= */
+const PALETTE = [
+  { n:'Rojo',              b:'#C51111', s:'#7A0838' },
+  { n:'Azul',              b:'#132ED1', s:'#09158E' },
+  { n:'Verde',             b:'#117F2D', s:'#0A4D2E' },
+  { n:'Rosa',              b:'#ED54BA', s:'#AB2BAD' },
+  { n:'Naranja',           b:'#EF7D0D', s:'#B33E15' },
+  { n:'Amarillo',          b:'#F5F557', s:'#C38823' },
+  { n:'Negro',             b:'#3F474E', s:'#1E1F26' },
+  { n:'Blanco',            b:'#D6E0F0', s:'#8394BF' },
+  { n:'Morado',            b:'#6B2FBC', s:'#3B177C' },
+  { n:'Marrón',            b:'#71491E', s:'#5E2615' },
+  { n:'Cian',              b:'#38FEDB', s:'#24A8BE' },
+  { n:'Lima',              b:'#50EF39', s:'#15A742' },
+  { n:'Guinda',            b:'#6B2B3C', s:'#421723' },
+  { n:'Rosáceo',           b:'#ECC0D3', s:'#B984A0' },
+  { n:'Banana',            b:'#FFFEBE', s:'#D4C373' },
+  { n:'Gris',              b:'#708496', s:'#435161' },
+  { n:'Bronce',            b:'#928776', s:'#5B5246' },
+  { n:'Coral',             b:'#EC7578', s:'#B44353' },
+];
+const DEFAULT_VISOR = '#95CADC';
+const FILTER_DEFAULTS = { tol:35, wtol:22, soft:45, minc:4, mixRB:true };
+
+const CDN = {
+  gifuct: ['https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm', 'https://esm.sh/gifuct-js@2.1.2'],
+  gifjs:  ['https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js', 'https://unpkg.com/gif.js@0.2.0/dist/gif.js'],
+  gifwk:  ['https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js', 'https://unpkg.com/gif.js@0.2.0/dist/gif.worker.js'],
+};
+
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+const $ = (id) => document.getElementById(id);
+const state = {
+  kind: null,            // 'image' | 'gif' | 'video'
+  file: null, ext: '', baseName: '', url: null,
+  w: 0, h: 0,
+  image: null,           // ImageBitmap | HTMLImageElement
+  frames: null,          // [{data: ImageData, delay: ms}]
+  video: null,           // HTMLVideoElement
+  gifIndex: 0, gifAcc: 0, lastT: 0,
+  playing: true,
+  body: PALETTE[0].b, shadow: PALETTE[0].s, visor: DEFAULT_VISOR, colorName: PALETTE[0].n,
+  recolorVisor: true,
+  tol: .35, wtol: .22, soft: .45, minc: .04, mixRB: true,
+  mode: 0,               // 0 procesado · 1 original · 2 máscara
+  compareLatched: false, compareHeld: false,
+  dirty: true, exporting: false,
+  renderer: null,
+};
+
+/* =========================================================================
+   UTILIDADES
+   ========================================================================= */
+const hexToRgb = (hex) => {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255];
+};
+const fmtTime = (s) => {
+  if (!isFinite(s)) return '--:--';
+  const m = Math.floor(s / 60), r = Math.floor(s % 60);
+  return `${m}:${String(r).padStart(2,'0')}`;
+};
+const slug = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(.*?\)/g,'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const nextFrame = () => new Promise(r => setTimeout(r, 0));
+
+let toastTimer = 0;
+function toast(msg, ok = false) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (ok ? ' ok' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast' + (ok ? ' ok' : ''), ok ? 3200 : 6500);
+}
+
+function download(blob, name) {
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/** Parámetros actuales del shader. */
+function shaderParams(modeOverride) {
+  return {
+    body: hexToRgb(state.body),
+    shadow: hexToRgb(state.shadow),
+    visor: state.recolorVisor ? hexToRgb(state.visor) : [0, 1, 0],
+    tol: state.tol, wtol: state.wtol,
+    soft: Math.max(.01, state.soft),
+    minc: state.minc,
+    mixRB: state.mixRB ? 1 : 0,
+    mode: modeOverride ?? state.mode,
+  };
+}
+
+/* =========================================================================
+   NÚCLEO: SHADER RGB (GPU, WebGL) + RÉPLICA EXACTA EN CPU
+   -------------------------------------------------------------------------
+   Para cada pixel p = (r,g,b):
+     mn = min(r,g,b)                       → componente acromática (blanco/gris/negro)
+     q  = p - mn                           → componente cromática (pureza de canal)
+     first  = canal cromático dominante; second = el siguiente
+     dominancia d = second / first         → 0 = canal puro, 1 = mezcla a partes iguales
+       (si la mezcla es exactamente R+B y está activo "fundir", d = 0: transición cuerpo/sombra)
+     gris   gr = mn / max                  → 0 = color saturado, 1 = blanco/gris
+     peso w = band(d, tol) · band(gr, wtol) · smoothstep(minc/2, minc, first)
+     recoloreado = mn + q.r·Cuerpo + q.g·Visor + q.b·Sombra
+     salida = mix(original, recoloreado, w)   (alpha intacto)
+   Blancos (mn=max) y negros (q=0) nunca cambian; cosméticos con mezcla de canales
+   (naranja, amarillo, marrón, piel…) quedan fuera por dominancia.
+   ========================================================================= */
+const VERT = `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main(){
+  vUv = vec2((aPos.x + 1.0) * 0.5, (1.0 - aPos.y) * 0.5);
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+const FRAG = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 vUv;
+uniform sampler2D uTex;
+uniform vec3 uBody, uShadow, uVisor;
+uniform float uTol, uWTol, uSoft, uMinC, uMixRB, uMode;
+
+float band(float x, float t){
+  if (t <= 0.0001) return x <= 0.0001 ? 1.0 : 0.0;
+  float e0 = t * (1.0 - uSoft);
+  return 1.0 - smoothstep(e0, t, x);
+}
+
+void main(){
+  vec4 c = texture2D(uTex, vUv);
+  vec3 p = c.rgb;
+  float mx = max(max(p.r, p.g), p.b);
+  float mn = min(min(p.r, p.g), p.b);
+  vec3 q = p - vec3(mn);
+  float first = max(max(q.r, q.g), q.b);
+  float second = q.r + q.g + q.b - first;
+
+  float w = 0.0;
+  if (first > 0.00001) {
+    float d = (uMixRB > 0.5 && q.g <= 0.002) ? 0.0 : second / first;
+    float gr = mn / max(mx, 0.00001);
+    float cw = uMinC <= 0.0001 ? 1.0 : smoothstep(uMinC * 0.5, uMinC, first);
+    w = cw * band(d, uTol) * band(gr, uWTol);
+  }
+
+  vec3 rec = clamp(vec3(mn) + q.r * uBody + q.g * uVisor + q.b * uShadow, 0.0, 1.0);
+  vec3 outc;
+  if (uMode > 1.5) {
+    float l = dot(p, vec3(0.299, 0.587, 0.114)) * 0.35;
+    outc = mix(vec3(l), vec3(0.22, 1.0, 0.86), w);
+  } else if (uMode > 0.5) {
+    outc = p;
+  } else {
+    outc = mix(p, rec, w);
+  }
+  gl_FragColor = vec4(outc, c.a);
+}`;
+
+class GLRenderer {
+  constructor() {
+    this.kind = 'webgl';
+    this.canvas = document.createElement('canvas');
+    const gl = this.canvas.getContext('webgl', { premultipliedAlpha:false, preserveDrawingBuffer:true, alpha:true, antialias:false })
+            || this.canvas.getContext('experimental-webgl', { premultipliedAlpha:false, preserveDrawingBuffer:true, alpha:true, antialias:false });
+    if (!gl) throw new Error('WebGL no disponible');
+    this.gl = gl;
+    const sh = (type, src) => {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+    this.prog = prog;
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    this.tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+    this.u = {};
+    for (const n of ['uTex','uBody','uShadow','uVisor','uTol','uWTol','uSoft','uMinC','uMixRB','uMode'])
+      this.u[n] = gl.getUniformLocation(prog, n);
+    gl.uniform1i(this.u.uTex, 0);
+    this.maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  }
+  supports(w, h) { return w <= this.maxTex && h <= this.maxTex; }
+  resize(w, h) {
+    if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
+  }
+  render(src, P) {
+    const gl = this.gl;
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    gl.uniform3fv(this.u.uBody, P.body);
+    gl.uniform3fv(this.u.uShadow, P.shadow);
+    gl.uniform3fv(this.u.uVisor, P.visor);
+    gl.uniform1f(this.u.uTol, P.tol);
+    gl.uniform1f(this.u.uWTol, P.wtol);
+    gl.uniform1f(this.u.uSoft, P.soft);
+    gl.uniform1f(this.u.uMinC, P.minc);
+    gl.uniform1f(this.u.uMixRB, P.mixRB);
+    gl.uniform1f(this.u.uMode, P.mode);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  destroy() { const ext = this.gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); this.canvas.remove(); }
+}
+
+/* Réplica en CPU (fallback si no hay WebGL o la resolución supera MAX_TEXTURE_SIZE). */
+function smoothstep(e0, e1, x) {
+  if (e1 <= e0) return x < e0 ? 0 : 1;
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+function processPixels(data, P) {
+  const [br, bg, bb] = P.body, [sr, sg, sb] = P.shadow, [vr, vg, vb] = P.visor;
+  const band = (x, t) => t <= 0.0001 ? (x <= 0.0001 ? 1 : 0) : 1 - smoothstep(t * (1 - P.soft), t, x);
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i] / 255, g = data[i+1] / 255, b = data[i+2] / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    const qr = r - mn, qg = g - mn, qb = b - mn;
+    const first = Math.max(qr, qg, qb);
+    const second = qr + qg + qb - first;
+    let w = 0;
+    if (first > 0.00001) {
+      const d = (P.mixRB && qg <= 0.002) ? 0 : second / first;
+      const gr = mn / Math.max(mx, 0.00001);
+      const cw = P.minc <= 0.0001 ? 1 : smoothstep(P.minc * 0.5, P.minc, first);
+      w = cw * band(d, P.tol) * band(gr, P.wtol);
+    }
+    let or, og, ob;
+    if (P.mode === 2) {
+      const l = (0.299*r + 0.587*g + 0.114*b) * 0.35;
+      or = l + (0.22 - l) * w; og = l + (1 - l) * w; ob = l + (0.86 - l) * w;
+    } else if (P.mode === 1 || w === 0) {
+      continue;
+    } else {
+      const rr = Math.min(1, Math.max(0, mn + qr*br + qg*vr + qb*sr));
+      const rg = Math.min(1, Math.max(0, mn + qr*bg + qg*vg + qb*sg));
+      const rb = Math.min(1, Math.max(0, mn + qr*bb + qg*vb + qb*sb));
+      or = r + (rr - r) * w; og = g + (rg - g) * w; ob = b + (rb - b) * w;
+    }
+    data[i] = Math.round(or * 255); data[i+1] = Math.round(og * 255); data[i+2] = Math.round(ob * 255);
+  }
+}
+
+class CPURenderer {
+  constructor() {
+    this.kind = 'cpu';
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+    this.scratch = document.createElement('canvas');
+    this.sctx = this.scratch.getContext('2d', { willReadFrequently: true });
+  }
+  supports() { return true; }
+  resize(w, h) {
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w; this.canvas.height = h; this.scratch.width = w; this.scratch.height = h;
+    }
+  }
+  render(src, P) {
+    const w = this.canvas.width, h = this.canvas.height;
+    let img;
+    if (src instanceof ImageData) {
+      img = new ImageData(new Uint8ClampedArray(src.data), src.width, src.height);
+    } else {
+      this.sctx.clearRect(0, 0, w, h);
+      this.sctx.drawImage(src, 0, 0, w, h);
+      img = this.sctx.getImageData(0, 0, w, h);
+    }
+    processPixels(img.data, P);
+    this.ctx.putImageData(img, 0, 0);
+  }
+  destroy() { this.canvas.remove(); }
+}
+
+function createRenderer(w, h) {
+  try {
+    const r = new GLRenderer();
+    if (r.supports(w, h)) { r.resize(w, h); return r; }
+    r.destroy();
+  } catch (e) { console.warn('WebGL no disponible, uso CPU:', e); }
+  const c = new CPURenderer(); c.resize(w, h); return c;
+}
+
+/* =========================================================================
+   CARGA DE LIBRERÍAS (CDN, bajo demanda)
+   ========================================================================= */
+let gifuctMod = null;
+async function loadGifuct() {
+  if (gifuctMod) return gifuctMod;
+  let lastErr;
+  for (const url of CDN.gifuct) {
+    try {
+      const m = await import(url);
+      const lib = m.parseGIF ? m : (m.default && m.default.parseGIF ? m.default : null);
+      if (lib) { gifuctMod = lib; return lib; }
+      lastErr = new Error('módulo sin parseGIF');
+    } catch (e) { lastErr = e; }
+  }
+  throw new Error('No se pudo cargar gifuct-js desde el CDN (' + (lastErr?.message || 'desconocido') + ')');
+}
+
+let gifWorkerURL = null;
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.crossOrigin = 'anonymous';
+    s.onload = res; s.onerror = () => { s.remove(); rej(new Error('Fallo al cargar ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+async function loadGifJs() {
+  if (!window.GIF) {
+    let ok = false;
+    for (const u of CDN.gifjs) { try { await loadScript(u); if (window.GIF) { ok = true; break; } } catch {} }
+    if (!ok) throw new Error('No se pudo cargar gif.js desde el CDN');
+  }
+  if (!gifWorkerURL) {
+    // El worker se descarga como texto y se sirve desde un Blob same-origin → sin errores CORS.
+    let txt = null;
+    for (const u of CDN.gifwk) {
+      try { const r = await fetch(u, { mode: 'cors' }); if (r.ok) { txt = await r.text(); break; } } catch {}
+    }
+    if (!txt) throw new Error('No se pudo descargar gif.worker.js');
+    txt = txt.replace(/\/\/# sourceMappingURL=.*$/gm, '');
+    gifWorkerURL = URL.createObjectURL(new Blob([txt], { type: 'application/javascript' }));
+  }
+  return window.GIF;
+}
+
+/* =========================================================================
+   DECODIFICACIÓN
+   ========================================================================= */
+async function decodeImage(file) {
+  if ('createImageBitmap' in window) {
+    try {
+      return await createImageBitmap(file, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    } catch (e) { console.warn('createImageBitmap falló, uso <img>', e); }
+  }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = url;
+  await img.decode();
+  return img;
+}
+
+/** Decodifica un GIF completo y compone cada fotograma (respeta disposal 1/2/3 y delays exactos). */
+async function decodeGif(file, onProgress) {
+  const { parseGIF, decompressFrames } = await loadGifuct();
+  const buf = await file.arrayBuffer();
+  const gif = parseGIF(buf);
+  const raw = decompressFrames(gif, true);
+  if (!raw.length) throw new Error('El GIF no contiene fotogramas');
+  const W = gif.lsd.width, H = gif.lsd.height;
+  const comp = document.createElement('canvas'); comp.width = W; comp.height = H;
+  const ctx = comp.getContext('2d', { willReadFrequently: true });
+  const patchC = document.createElement('canvas');
+  const pctx = patchC.getContext('2d', { willReadFrequently: true });
+  const frames = [];
+  let prev = null, restore = null;
+  for (let i = 0; i < raw.length; i++) {
+    const f = raw[i];
+    if (prev) {
+      if (prev.disposalType === 2) ctx.clearRect(prev.dims.left, prev.dims.top, prev.dims.width, prev.dims.height);
+      else if (prev.disposalType === 3 && restore) ctx.putImageData(restore, 0, 0);
+    }
+    restore = f.disposalType === 3 ? ctx.getImageData(0, 0, W, H) : null;
+    const { width, height, left, top } = f.dims;
+    if (width > 0 && height > 0) {
+      patchC.width = width; patchC.height = height;
+      pctx.putImageData(new ImageData(new Uint8ClampedArray(f.patch), width, height), 0, 0);
+      ctx.drawImage(patchC, left, top);
+    }
+    frames.push({ data: ctx.getImageData(0, 0, W, H), delay: f.delay ?? 100 });
+    prev = f;
+    if (i % 8 === 0) { onProgress?.((i + 1) / raw.length); await nextFrame(); }
+  }
+  return { frames, W, H };
+}
+
+function decodeVideo(url) {
+  return new Promise((res, rej) => {
+    const v = document.createElement('video');
+    v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('playsinline', '');
+    const fail = () => rej(new Error('El navegador no puede reproducir este vídeo (códec no soportado).'));
+    v.addEventListener('error', fail, { once: true });
+    v.addEventListener('seeked', () => { state.dirty = true; });
+    v.addEventListener('loadeddata', () => { v.removeEventListener('error', fail); res(v); }, { once: true });
+    v.src = url;
+    v.load();
+  });
+}
+
+/* =========================================================================
+   GESTIÓN DE ARCHIVOS
+   ========================================================================= */
+const TYPES = {
+  png:'image', jpg:'image', jpeg:'image', webp:'image', gif:'gif', mp4:'video', webm:'video',
+};
+
+function resetSource() {
+  if (state.video) { state.video.pause(); state.video.removeAttribute('src'); state.video.load(); }
+  if (state.url) URL.revokeObjectURL(state.url);
+  if (state.image && state.image.close) state.image.close();
+  if (state.renderer) state.renderer.destroy();
+  Object.assign(state, { kind:null, image:null, frames:null, video:null, url:null, renderer:null, gifIndex:0, gifAcc:0 });
+}
+
+async function handleFile(file) {
+  if (!file || state.exporting) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  let kind = TYPES[ext];
+  if (!kind) {
+    if (file.type === 'image/gif') kind = 'gif';
+    else if (file.type.startsWith('image/')) kind = 'image';
+    else if (file.type.startsWith('video/')) kind = 'video';
+  }
+  if (!kind) { toast(`Formato no soportado: .${ext || '?'} — usa PNG, JPG, WEBP, GIF, MP4 o WEBM.`); return; }
+
+  resetSource();
+  showProgress('Cargando archivo', 'Decodificando ' + file.name, false);
+  try {
+    state.file = file; state.ext = ext || (kind === 'gif' ? 'gif' : kind === 'video' ? 'mp4' : 'png');
+    state.baseName = file.name.replace(/\.[^.]+$/, '');
+    state.kind = kind;
+    if (kind === 'image') {
+      state.image = await decodeImage(file);
+      state.w = state.image.width || state.image.naturalWidth;
+      state.h = state.image.height || state.image.naturalHeight;
+    } else if (kind === 'gif') {
+      setProgress(0, 'Extrayendo fotogramas');
+      const g = await decodeGif(file, p => setProgress(p, 'Extrayendo fotogramas'));
+      state.frames = g.frames; state.w = g.W; state.h = g.H;
+    } else {
+      state.url = URL.createObjectURL(file);
+      state.video = await decodeVideo(state.url);
+      state.w = state.video.videoWidth; state.h = state.video.videoHeight;
+      if (!state.w || !state.h) throw new Error('No se pudo leer la resolución del vídeo');
+    }
+    state.renderer = createRenderer(state.w, state.h);
+    mountCanvas();
+    state.playing = true;
+    if (state.video) { try { await state.video.play(); } catch { state.playing = false; } }
+    state.dirty = true;
+    updateUI();
+    hideProgress();
+  } catch (e) {
+    console.error(e);
+    hideProgress();
+    resetSource();
+    updateUI();
+    toast('Error al cargar: ' + e.message);
+  }
+}
+
+function mountCanvas() {
+  const view = $('view');
+  view.querySelectorAll('canvas').forEach(c => c.remove());
+  $('empty').style.display = 'none';
+  const c = state.renderer.canvas;
+  view.appendChild(c);
+  view.classList.toggle('pixel', Math.max(state.w, state.h) <= 400);
+  fitCanvas();
+  $('engineChip').textContent = state.renderer.kind === 'webgl' ? 'motor: WebGL shader' : 'motor: CPU';
+  $('engineChip').className = 'chip' + (state.renderer.kind === 'webgl' ? ' gl' : '');
+}
+
+/** Ajusta el tamaño visual del canvas al área disponible (amplía también los sprites pequeños). */
+function fitCanvas() {
+  const c = state.renderer?.canvas;
+  if (!c || !state.w) return;
+  const view = $('view');
+  const availW = view.clientWidth - 36;
+  const availH = Math.min(window.innerHeight * 0.72, Math.max(380, view.clientHeight - 36));
+  let k = Math.min(availW / state.w, availH / state.h);
+  if (k > 1 && Math.max(state.w, state.h) <= 400) k = Math.max(1, Math.floor(k)); // escalado entero para pixel art
+  c.style.width = Math.round(state.w * k) + 'px';
+  c.style.height = Math.round(state.h * k) + 'px';
+}
+new ResizeObserver(fitCanvas).observe($('view'));
+window.addEventListener('resize', fitCanvas);
+
+/* =========================================================================
+   BUCLE DE RENDER EN TIEMPO REAL
+   ========================================================================= */
+function currentSource() {
+  if (state.kind === 'image') return state.image;
+  if (state.kind === 'gif') return state.frames[state.gifIndex].data;
+  if (state.kind === 'video') return state.video;
+  return null;
+}
+const previewDelay = (d) => (d < 20 ? 100 : d); // igual que los navegadores
+
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = state.lastT ? Math.min(t - state.lastT, 1000) : 0;
+  state.lastT = t;
+  if (!state.kind || !state.renderer || state.exporting) return;
+
+  if (state.kind === 'gif' && state.playing && state.frames.length > 1) {
+    state.gifAcc += dt;
+    let d = previewDelay(state.frames[state.gifIndex].delay);
+    while (state.gifAcc >= d) {
+      state.gifAcc -= d;
+      state.gifIndex = (state.gifIndex + 1) % state.frames.length;
+      d = previewDelay(state.frames[state.gifIndex].delay);
+      state.dirty = true;
+    }
+  }
+  if (state.kind === 'video') {
+    const v = state.video;
+    if (v.readyState >= 2 && (!v.paused || state.dirty)) { state.renderer.render(v, shaderParams()); state.dirty = false; }
+    updateTimeInfo();
+    return;
+  }
+  if (state.dirty) {
+    state.renderer.render(currentSource(), shaderParams());
+    state.dirty = false;
+    updateTimeInfo();
+  }
+}
+requestAnimationFrame(loop);
+
+function updateTimeInfo() {
+  const ti = $('tinfo');
+  if (state.kind === 'gif') {
+    const f = state.frames[state.gifIndex];
+    ti.textContent = `fotograma ${state.gifIndex + 1}/${state.frames.length} · ${f.delay} ms`;
+  } else if (state.kind === 'video') {
+    const v = state.video;
+    $('tCur').textContent = fmtTime(v.currentTime);
+    $('tDur').textContent = fmtTime(v.duration);
+    if (!seeking && isFinite(v.duration) && v.duration > 0) $('seek').value = Math.round(v.currentTime / v.duration * 1000);
+    ti.textContent = `${state.w}×${state.h}`;
+  } else if (state.kind === 'image') {
+    ti.textContent = `${state.w}×${state.h}`;
+  } else ti.textContent = '';
+}
+
+/* =========================================================================
+   INTERFAZ
+   ========================================================================= */
+function buildPalette() {
+  const pal = $('palette');
+  PALETTE.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'col' + (i === 0 ? ' active' : '');
+    b.title = `${c.n} — cuerpo ${c.b} · sombra ${c.s}`;
+    b.innerHTML = `<div class="sw" style="background:linear-gradient(135deg, ${c.b} 0 55%, ${c.s} 55% 100%)"><i></i></div><span>${c.n}</span>`;
+    b.addEventListener('click', () => {
+      state.body = c.b; state.shadow = c.s; state.colorName = c.n;
+      pal.querySelectorAll('.col').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      syncPickers(); state.dirty = true;
+    });
+    pal.appendChild(b);
+  });
+}
+
+function syncPickers() {
+  $('cBody').value = state.body.toLowerCase();   $('cBodyHex').textContent = state.body.toUpperCase();
+  $('cShadow').value = state.shadow.toLowerCase(); $('cShadowHex').textContent = state.shadow.toUpperCase();
+  $('cVisor').value = state.visor.toLowerCase();  $('cVisorHex').textContent = state.visor.toUpperCase();
+  document.querySelectorAll('.sw i').forEach(i => i.style.background = state.recolorVisor ? state.visor : '#00ff00');
+  $('cVisor').disabled = !state.recolorVisor;
+}
+
+function bindPicker(id, key) {
+  $(id).addEventListener('input', (e) => {
+    state[key] = e.target.value.toUpperCase();
+    if (key !== 'visor') {
+      state.colorName = 'personalizado';
+      $('palette').querySelectorAll('.col').forEach(x => x.classList.remove('active'));
+    }
+    syncPickers(); state.dirty = true;
+  });
+}
+
+function bindSlider(id, out, key, fmt = v => v + '%') {
+  const el = $(id);
+  const apply = () => { state[key] = el.value / 100; $(out).textContent = fmt(+el.value); state.dirty = true; };
+  el.addEventListener('input', apply); apply();
+}
+
+function setMode() {
+  const original = state.compareLatched || state.compareHeld;
+  state.mode = original ? 1 : ($('btnMask').classList.contains('on') ? 2 : 0);
+  $('btnCompare').classList.toggle('on', original);
+  const tag = $('modeTag');
+  if (!state.kind) { tag.style.display = 'none'; }
+  else {
+    tag.style.display = 'block';
+    tag.className = 'modetag' + (state.mode === 1 ? ' orig' : state.mode === 2 ? ' mask' : '');
+    tag.textContent = state.mode === 1 ? 'ORIGINAL' : state.mode === 2 ? 'MÁSCARA' : 'PROCESADO';
+  }
+  state.dirty = true;
+}
+
+function updateUI() {
+  const has = !!state.kind;
+  ['btnCompare','btnMask','btnExport'].forEach(id => $(id).disabled = !has);
+  $('btnPlay').disabled = !(state.kind === 'gif' && state.frames.length > 1) && state.kind !== 'video';
+  $('btnPlay').textContent = state.playing ? '⏸ Pausa' : '▶ Reproducir';
+  $('btnMute').style.display = state.kind === 'video' ? '' : 'none';
+  $('btnMute').disabled = state.kind !== 'video';
+  if (state.video) $('btnMute').textContent = state.video.muted ? '🔇 Silencio' : '🔊 Sonido';
+  $('timeline').style.display = state.kind === 'video' ? 'flex' : 'none';
+  $('gifOpts').style.display = state.kind === 'gif' ? '' : 'none';
+  $('vidOpts').style.display = state.kind === 'video' ? '' : 'none';
+
+  const fc = $('formatChip'), fi = $('fileInfo'), ei = $('exportInfo');
+  if (!has) {
+    fc.textContent = 'sin archivo'; fc.className = 'chip';
+    fi.style.display = 'none';
+    ei.textContent = 'Sube un archivo para exportar.';
+    $('view').querySelectorAll('canvas').forEach(c => c.remove());
+    $('empty').style.display = '';
+    $('engineChip').textContent = 'motor: —'; $('engineChip').className = 'chip';
+    setMode(); updateTimeInfo();
+    return;
+  }
+  const label = { image:'IMAGEN', gif:'GIF ANIMADO', video:'VÍDEO' }[state.kind];
+  fc.textContent = `${label} · ${state.ext.toUpperCase()}`; fc.className = 'chip on';
+  let extra = '';
+  if (state.kind === 'gif') {
+    const total = state.frames.reduce((a, f) => a + f.delay, 0);
+    extra = `<br>Fotogramas: <b>${state.frames.length}</b> · Duración: <b>${(total/1000).toFixed(2)} s</b>`;
+  } else if (state.kind === 'video') {
+    extra = `<br>Duración: <b>${fmtTime(state.video.duration)}</b>`;
+  }
+  const kb = state.file.size / 1024;
+  fi.innerHTML = `<span class="badge b-${state.kind}">${label}</span><b>${state.file.name}</b><br>Resolución: <b>${state.w}×${state.h}</b> · Tamaño: <b>${kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb.toFixed(0) + ' KB'}</b>${extra}`;
+  fi.style.display = 'block';
+  ei.innerHTML = `Salida: <b>${exportTarget().label}</b> · ${state.w}×${state.h}`;
+  setMode(); updateTimeInfo();
+}
+
+function exportTarget() {
+  if (state.kind === 'image') {
+    if (state.ext === 'jpg' || state.ext === 'jpeg') return { label: '.' + state.ext + ' (JPEG)', ext: state.ext, mime: 'image/jpeg' };
+    if (state.ext === 'webp') return { label: '.webp', ext: 'webp', mime: 'image/webp' };
+    return { label: '.png', ext: 'png', mime: 'image/png' };
+  }
+  if (state.kind === 'gif') return { label: '.gif animado (delays originales)', ext: 'gif' };
+  const m = pickVideoMime(state.ext, true);
+  const e = m.includes('mp4') ? 'mp4' : 'webm';
+  return { label: '.' + e + (e !== state.ext ? ` (tu navegador no graba .${state.ext})` : ''), ext: e };
+}
+
+/* --- Eventos --- */
+const drop = $('drop'), input = $('fileInput');
+drop.addEventListener('click', () => input.click());
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+input.addEventListener('change', () => { handleFile(input.files[0]); input.value = ''; });
+['dragenter','dragover'].forEach(ev => window.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => window.addEventListener(ev, e => { e.preventDefault(); if (ev === 'drop' || e.relatedTarget === null) drop.classList.remove('over'); }));
+window.addEventListener('drop', e => { const f = e.dataTransfer?.files?.[0]; if (f) handleFile(f); });
+
+bindPicker('cBody', 'body'); bindPicker('cShadow', 'shadow'); bindPicker('cVisor', 'visor');
+$('recolorVisor').addEventListener('change', e => { state.recolorVisor = e.target.checked; syncPickers(); state.dirty = true; });
+$('resetVisor').addEventListener('click', () => { state.visor = DEFAULT_VISOR; state.recolorVisor = true; $('recolorVisor').checked = true; syncPickers(); state.dirty = true; });
+
+bindSlider('tol', 'oTol', 'tol');
+bindSlider('wtol', 'oWtol', 'wtol');
+bindSlider('soft', 'oSoft', 'soft');
+bindSlider('minc', 'oMinc', 'minc');
+$('mixRB').addEventListener('change', e => { state.mixRB = e.target.checked; state.dirty = true; });
+$('resetFilter').addEventListener('click', () => {
+  for (const [k, v] of Object.entries(FILTER_DEFAULTS)) {
+    if (k === 'mixRB') { $('mixRB').checked = v; state.mixRB = v; }
+    else { $(k).value = v; $(k).dispatchEvent(new Event('input')); }
+  }
+  state.dirty = true;
+});
+const gq = $('gifQ'); const showGq = () => $('oGifQ').textContent = gq.value; gq.addEventListener('input', showGq); showGq();
+
+$('btnCompare').addEventListener('click', () => { state.compareLatched = !state.compareLatched; setMode(); });
+$('btnMask').addEventListener('click', () => { $('btnMask').classList.toggle('on'); state.compareLatched = false; setMode(); });
+$('btnPlay').addEventListener('click', togglePlay);
+$('btnMute').addEventListener('click', () => { if (!state.video) return; state.video.muted = !state.video.muted; updateUI(); });
+
+function togglePlay() {
+  if (state.kind === 'gif') { state.playing = !state.playing; }
+  else if (state.kind === 'video') {
+    if (state.video.paused) { state.video.play().catch(() => {}); state.playing = true; }
+    else { state.video.pause(); state.playing = false; }
+  }
+  updateUI();
+}
+
+let seeking = false;
+$('seek').addEventListener('input', e => {
+  if (!state.video || !isFinite(state.video.duration)) return;
+  seeking = true;
+  state.video.currentTime = e.target.value / 1000 * state.video.duration;
+  state.dirty = true;
+});
+$('seek').addEventListener('change', () => { seeking = false; });
+
+window.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea') && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (!state.kind || state.exporting) return;
+  if (e.code === 'KeyC' && !e.repeat) { state.compareHeld = true; setMode(); }
+  if (e.code === 'KeyM') { $('btnMask').click(); }
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+});
+window.addEventListener('keyup', e => { if (e.code === 'KeyC') { state.compareHeld = false; setMode(); } });
+
+/* =========================================================================
+   PROGRESO
+   ========================================================================= */
+let cancelFn = null;
+function showProgress(title, msg, cancellable = true) {
+  $('pTitle').textContent = title; $('pMsg').textContent = msg;
+  $('pBar').style.width = '0%'; $('pPct').textContent = '0%'; $('pPhase').textContent = '';
+  $('pCancel').style.display = cancellable ? '' : 'none';
+  $('overlay').classList.add('show');
+}
+function setProgress(p, phase) {
+  const v = Math.max(0, Math.min(1, p)) * 100;
+  $('pBar').style.width = v.toFixed(1) + '%';
+  $('pPct').textContent = v.toFixed(0) + '%';
+  if (phase) $('pPhase').textContent = phase;
+}
+function hideProgress() { $('overlay').classList.remove('show'); cancelFn = null; }
+$('pCancel').addEventListener('click', () => { if (cancelFn) cancelFn(); });
+
+/* =========================================================================
+   EXPORTACIÓN
+   ========================================================================= */
+const outName = (ext) => `${state.baseName}_${slug(state.colorName) || 'color'}.${ext}`;
+
+$('btnExport').addEventListener('click', async () => {
+  if (!state.kind || state.exporting) return;
+  state.exporting = true;
+  try {
+    if (state.kind === 'image') await exportImage();
+    else if (state.kind === 'gif') await exportGif();
+    else await exportVideo();
+  } catch (e) {
+    if (e && e.message === 'cancelado') toast('Exportación cancelada.');
+    else { console.error(e); toast('Error al exportar: ' + (e?.message || e)); }
+  } finally {
+    hideProgress();
+    state.exporting = false;
+    state.dirty = true;
+  }
+});
+
+/* ---- Imagen ---- */
+async function exportImage() {
+  const t = exportTarget();
+  state.renderer.render(state.image, shaderParams(0));
+  let blob = await new Promise(r => state.renderer.canvas.toBlob(r, t.mime, 0.95));
+  let ext = t.ext;
+  if (!blob) throw new Error('El navegador no pudo codificar la imagen');
+  if (t.mime === 'image/webp' && blob.type !== 'image/webp') ext = 'png';
+  download(blob, outName(ext));
+  toast(`Descargado ${outName(ext)} (${state.w}×${state.h})`, true);
+}
+
+/* ---- GIF ---- */
+async function exportGif() {
+  let cancelled = false, gif = null;
+  showProgress('Exportando GIF', `Recoloreando ${state.frames.length} fotogramas y reconstruyendo el GIF…`);
+  cancelFn = () => { cancelled = true; if (gif) gif.abort(); };
+  setProgress(0, 'Cargando gif.js');
+  const GIF = await loadGifJs();
+  if (cancelled) throw new Error('cancelado');
+
+  const W = state.w, H = state.h;
+  // ¿El GIF tiene transparencia?
+  let hasAlpha = false;
+  outer: for (const f of state.frames) {
+    const d = f.data.data;
+    for (let i = 3; i < d.length; i += 4) if (d[i] < 255) { hasAlpha = true; break outer; }
+  }
+  const KEY = 0xFF00FF; // color clave para transparencia
+  gif = new GIF({
+    workers: Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 4) - 1)),
+    quality: +$('gifQ').value,
+    workerScript: gifWorkerURL,
+    width: W, height: H,
+    repeat: 0,
+    dither: false,
+    transparent: hasAlpha ? KEY : null,
+    background: '#000000',
+  });
+
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tctx = tmp.getContext('2d', { willReadFrequently: true });
+  const P = shaderParams(0);
+  const n = state.frames.length;
+  for (let i = 0; i < n; i++) {
+    if (cancelled) throw new Error('cancelado');
+    state.renderer.render(state.frames[i].data, P);
+    tctx.clearRect(0, 0, W, H);
+    tctx.drawImage(state.renderer.canvas, 0, 0);
+    const id = tctx.getImageData(0, 0, W, H);
+    if (hasAlpha) {
+      const d = id.data;
+      for (let k = 0; k < d.length; k += 4) {
+        if (d[k+3] < 128) { d[k] = 255; d[k+1] = 0; d[k+2] = 255; }
+        d[k+3] = 255;
+      }
+    }
+    gif.addFrame(id, { delay: state.frames[i].delay });
+    if (i % 4 === 0) { setProgress((i + 1) / n * 0.3, `Recoloreando ${i + 1}/${n}`); await nextFrame(); }
+  }
+  setProgress(0.3, 'Codificando GIF (workers)');
+  const blob = await new Promise((res, rej) => {
+    gif.on('progress', p => setProgress(0.3 + p * 0.7, 'Codificando GIF (workers)'));
+    gif.on('finished', b => res(b));
+    gif.on('abort', () => rej(new Error('cancelado')));
+    try { gif.render(); } catch (e) { rej(e); }
+  });
+  download(blob, outName('gif'));
+  toast(`GIF exportado: ${outName('gif')} · ${n} fotogramas`, true);
+}
+
+/* ---- Vídeo ---- */
+function pickVideoMime(ext, audio) {
+  if (typeof MediaRecorder === 'undefined') return '';
+  const mp4 = audio
+    ? ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4']
+    : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1', 'video/mp4'];
+  const webm = audio
+    ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const order = ext === 'mp4' ? [...mp4, ...webm] : [...webm, ...mp4];
+  return order.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch { return false; } }) || '';
+}
+
+async function exportVideo() {
+  if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream)
+    throw new Error('Tu navegador no soporta MediaRecorder / captureStream');
+  const preview = state.video;
+  const wasPlaying = !preview.paused;
+  preview.pause();
+
+  const W = state.w, H = state.h;
+  let cancelled = false;
+  showProgress('Exportando vídeo', 'Renderizando el vídeo completo con el color aplicado (en tiempo real)…');
+
+  // Vídeo dedicado a la exportación (no interfiere con la vista previa)
+  const v = document.createElement('video');
+  v.playsInline = true; v.preload = 'auto'; v.loop = false;
+  v.src = state.url;
+  await new Promise((res, rej) => {
+    v.addEventListener('loadeddata', res, { once: true });
+    v.addEventListener('error', () => rej(new Error('No se pudo abrir el vídeo para exportar')), { once: true });
+  });
+
+  const r = createRenderer(W, H);
+  $('hiddenRender').appendChild(r.canvas);
+  const P = shaderParams(0);
+
+  // Audio original → MediaStreamDestination (no suena por los altavoces)
+  let ac = null, audioTracks = [];
+  if ($('withAudio').checked) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const srcNode = ac.createMediaElementSource(v);
+      const dest = ac.createMediaStreamDestination();
+      srcNode.connect(dest);
+      await ac.resume();
+      audioTracks = dest.stream.getAudioTracks();
+      v.muted = false; v.volume = 1;
+    } catch (e) { console.warn('Sin audio:', e); v.muted = true; audioTracks = []; }
+  } else v.muted = true;
+
+  let cStream = r.canvas.captureStream(0);
+  let vTrack = cStream.getVideoTracks()[0];
+  const manual = vTrack && typeof vTrack.requestFrame === 'function';
+  if (!manual) { cStream = r.canvas.captureStream(60); vTrack = cStream.getVideoTracks()[0]; }
+  const stream = new MediaStream([vTrack, ...audioTracks]);
+
+  const mime = pickVideoMime(state.ext, audioTracks.length > 0);
+  const bitrate = Math.round(Math.min(40e6, Math.max(3e6, W * H * 30 * 0.16)));
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: bitrate, audioBitsPerSecond: 192000 } : { videoBitsPerSecond: bitrate }); }
+  catch { rec = new MediaRecorder(stream); }
+  const outMime = rec.mimeType || mime || 'video/webm';
+  const outExt = outMime.includes('mp4') ? 'mp4' : 'webm';
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((res, rej) => { rec.onstop = res; rec.onerror = e => rej(e.error || new Error('Error de MediaRecorder')); });
+
+  const draw = () => { r.render(v, P); if (manual) vTrack.requestFrame(); };
+  const dur = v.duration;
+  const tick = () => {
+    if (cancelled) return;
+    if (v.readyState >= 2) draw();
+    const p = isFinite(dur) && dur > 0 ? v.currentTime / dur : 0;
+    setProgress(p, `${fmtTime(v.currentTime)} / ${fmtTime(dur)} · ${outExt.toUpperCase()}`);
+  };
+  const useRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+  const schedule = () => {
+    if (cancelled || v.ended) return;
+    if (useRVFC) v.requestVideoFrameCallback(() => { tick(); schedule(); });
+    else requestAnimationFrame(() => { tick(); schedule(); });
+  };
+
+  const cleanup = () => {
+    try { v.pause(); } catch {}
+    v.removeAttribute('src'); v.load();
+    stream.getTracks().forEach(t => t.stop());
+    if (ac) ac.close().catch(() => {});
+    r.destroy();
+    if (wasPlaying) preview.play().catch(() => {});
+  };
+
+  cancelFn = () => { cancelled = true; try { rec.stop(); } catch {} };
+
+  try {
+    draw();
+    rec.start(500);
+    v.addEventListener('ended', () => { tick(); setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 250); }, { once: true });
+    schedule();
+    await v.play();
+    await stopped;
+  } catch (e) {
+    cleanup();
+    throw e;
+  }
+  cleanup();
+  if (cancelled) throw new Error('cancelado');
+  const blob = new Blob(chunks, { type: outMime.split(';')[0] });
+  if (!blob.size) throw new Error('La grabación quedó vacía');
+  download(blob, outName(outExt));
+  toast(`Vídeo exportado: ${outName(outExt)} (${W}×${H})`, true);
+}
+
+/* =========================================================================
+   INICIO
+   ========================================================================= */
+buildPalette();
+syncPickers();
+updateUI();
+</script>
+</body>
+</html>
